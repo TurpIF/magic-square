@@ -23,18 +23,18 @@ import util.tools.ArrayUtils;
 
 public class MagicSquares {
     public static interface StrategyFactory {
-        public abstract AbstractStrategy build(IntVar... vars);
+        public abstract AbstractStrategy build(IntVar[][] vars);
     }
 
     public static class DefaultStrategyFactory implements StrategyFactory {
-        public AbstractStrategy build(IntVar... vars) {
+        public AbstractStrategy build(IntVar[][] vars) {
             return null;
         }
     }
 
     public static class BasicStrategyFactory implements StrategyFactory {
-        public AbstractStrategy build(IntVar... vars) {
-            return ISF.custom(new VariableSelectorWithTies<IntVar>(new Smallest()), new IntDomainMax(), vars);
+        public AbstractStrategy build(IntVar[][] vars) {
+            return ISF.custom(new VariableSelectorWithTies<IntVar>(new Smallest()), new IntDomainMax(), ArrayUtils.flatten(vars));
         }
     }
 
@@ -43,7 +43,7 @@ public class MagicSquares {
         IntVar sum = VariableFactory.fixed((n * (n * n + 1)) / 2, solver);
         IntVar[][] vs = VariableFactory.enumeratedMatrix("vs", n, n, 1, n * n, solver);
 
-        AbstractStrategy strategy = strategyFactory.build(ArrayUtils.flatten(vs));
+        AbstractStrategy strategy = strategyFactory.build(vs);
         if (strategy != null) {
             solver.set(strategy);
         }
