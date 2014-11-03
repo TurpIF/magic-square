@@ -3,26 +3,29 @@ package magicsquares;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 
+import solver.ICause;
 import solver.Solver;
 import solver.constraints.IntConstraintFactory;
 import solver.exception.ContradictionException;
+import solver.explanations.Deduction;
+import solver.explanations.Explanation;
 import solver.search.strategy.ISF;
-import solver.search.strategy.decision.Decision;
+import solver.search.strategy.decision.fast.FastDecision;
 import solver.search.strategy.selectors.VariableSelector;
 import solver.search.strategy.selectors.VariableSelectorWithTies;
 import solver.search.strategy.selectors.values.IntDomainMax;
 import solver.search.strategy.selectors.values.IntDomainMiddle;
 import solver.search.strategy.selectors.values.IntDomainMin;
 import solver.search.strategy.selectors.values.IntDomainRandom;
-import solver.search.strategy.selectors.variables.FirstFail;
+import solver.search.strategy.selectors.variables.ActivityBased;
 import solver.search.strategy.selectors.variables.Largest;
 import solver.search.strategy.selectors.variables.Random;
 import solver.search.strategy.selectors.variables.Smallest;
 import solver.search.strategy.strategy.AbstractStrategy;
 import solver.variables.IntVar;
 import solver.variables.VariableFactory;
+import solver.variables.view.BoolEqView;
 import util.tools.ArrayUtils;
 
 public class MagicSquares {
@@ -113,6 +116,57 @@ public class MagicSquares {
         }
     }
 
+    public static class SiamoiseStrategyFactory extends StrategyFactory {
+        public AbstractStrategy build(IntVar[][] vars) {
+            // Strategie valable uniquement pour les carrés d'ordre impaire
+            if (vars.length % 2 != 1) {
+                return null;
+            }
+            final int n = vars.length;
+            return ISF.custom(new VariableSelector<IntVar>() {
+                @Override
+                public IntVar getVariable(IntVar[] intVars) {
+                    if (intVars.length < n) {
+                        return null;
+                    }
+
+                    if (!intVars[n / 2].isInstantiated()) {
+                        return intVars[n / 2];
+                    }
+
+                    if (intVars.length < n * n) {
+                        return null;
+                    }
+
+                    // On cherche la variable définie ayant la plus grande valeur
+                    int index = -1;
+                    int maxValue = intVars[0].getLB();
+                    for (int i = 0 ; i < intVars.length ; i++) {
+                        if (intVars[i].isInstantiated() && intVars[i].getValue() >= maxValue) {
+                            index = i;
+                            maxValue = intVars[i].getValue();
+                        }
+                    }
+                    if (index != -1) {
+                        // On prend la case en diagonal (haut droite) de la variable trouvée
+                        // Si la case est déjà défini, on descend d'une case
+                        int x = index % n;
+                        int y = (index - x) / n;
+                        int indexDiag = ((x + 1) % n) + ((y - 1) % n) * n;
+                        if (intVars[indexDiag].isInstantiated()) {
+                            int indexBis = x + ((y + 1) % n) * n;
+                            return intVars[indexBis];
+                        }
+                        return intVars[indexDiag];
+                    }
+                    return null;
+
+                    // return intVars[((int) (Math.random() * intVars.length))];
+                }
+            }, new IntDomainMin(), ArrayUtils.flatten(vars));
+        }
+    }
+
     public static IntVar[][] solveMagicSquare(int n, StrategyFactory strategyFactory) {
         Solver solver = new Solver();
         IntVar sum = VariableFactory.fixed((n * (n * n + 1)) / 2, solver);
@@ -173,22 +227,21 @@ public class MagicSquares {
 
         for (StrategyFactory strategy : strategies) {
             ps.print(strategy.toString());
-            for (int i = 1; i <= n; i++) {
-                double start = System.currentTimeMillis();
+            for (int i = 1; i <= n; i += 2) {
+                long start = System.nanoTime();
                 solveMagicSquare(i, strategy);
-                double end = System.currentTimeMillis();
-                ps.print("\t" + (end - start));
+                long end = System.nanoTime();
+                ps.print("\n" + (end - start));
             }
             ps.println();
         }
     }
-    
 
     //
     // Main
     //
     public static void main(String[] args) {
-        final int n = 6;
+        final int n = 100;
         /*String xp_name = "xp_1";
         try {
             File f = new File("C:\\Users\\Jonathan\\SkyDrive\\Université\\M2\\Résolution de problèmes combinatoires\\Projet\\" + xp_name);
@@ -198,6 +251,7 @@ public class MagicSquares {
             e.printStackTrace();
         }*/
         test(n, System.out,
+                new SiamoiseStrategyFactory());/*,
                 new DefaultStrategyFactory(),
                 new LargestIntDomainMaxStrategyFactory(),
                 new LargestIntDomainMiddleStrategyFactory(),
@@ -210,7 +264,7 @@ public class MagicSquares {
                 new RandomIntDomainMaxStrategyFactory(),
                 new RandomIntDomainMiddleStrategyFactory(),
                 new RandomIntDomainMinStrategyFactory(),
-                new RandomIntDomainRandomStrategyFactory());
-        
+                new RandomIntDomainRandomStrategyFactory(),
+                new SiamoiseStrategyFactory());*/
     }
 }
