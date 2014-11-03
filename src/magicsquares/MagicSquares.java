@@ -3,27 +3,45 @@ package magicsquares;
 import solver.Solver;
 import solver.constraints.IntConstraintFactory;
 import solver.exception.ContradictionException;
+import solver.search.strategy.ISF;
 import solver.search.strategy.decision.Decision;
+import solver.search.strategy.selectors.VariableSelectorWithTies;
+import solver.search.strategy.selectors.values.IntDomainMax;
+import solver.search.strategy.selectors.values.IntDomainMin;
+import solver.search.strategy.selectors.variables.FirstFail;
+import solver.search.strategy.selectors.variables.Random;
+import solver.search.strategy.selectors.variables.Smallest;
 import solver.search.strategy.strategy.AbstractStrategy;
 import solver.variables.IntVar;
 import solver.variables.VariableFactory;
 import util.tools.ArrayUtils;
 
 public class MagicSquares {
-    public static interface SolverFactory {
-        public abstract Solver build();
+    public static interface StrategyFactory {
+        public abstract AbstractStrategy build(IntVar... vars);
     }
 
-    public static class BasicSolverFactory implements SolverFactory {
-        public Solver build() {
-            return new Solver();
+    public static class DefaultStrategyFactory implements StrategyFactory {
+        public AbstractStrategy build(IntVar... vars) {
+            return null;
         }
     }
 
-    public static IntVar[][] solveMagicSquare(int n, SolverFactory solverFactory) {
-        Solver solver = solverFactory.build();
+    public static class BasicStrategyFactory implements StrategyFactory {
+        public AbstractStrategy build(IntVar... vars) {
+            return ISF.custom(new VariableSelectorWithTies<IntVar>(new Smallest()), new IntDomainMax(), vars);
+        }
+    }
+
+    public static IntVar[][] solveMagicSquare(int n, StrategyFactory strategyFactory) {
+        Solver solver = new Solver();
         IntVar sum = VariableFactory.fixed((n * (n * n + 1)) / 2, solver);
         IntVar[][] vs = VariableFactory.enumeratedMatrix("vs", n, n, 1, n * n, solver);
+
+        AbstractStrategy strategy = strategyFactory.build(ArrayUtils.flatten(vs));
+        if (strategy != null) {
+            solver.set(strategy);
+        }
 
         // Différence
         solver.post(IntConstraintFactory.alldifferent(ArrayUtils.flatten(vs)));
@@ -50,7 +68,7 @@ public class MagicSquares {
 
     public static void main(String[] args) {
         final int n = 6;
-        IntVar[][] solution = solveMagicSquare(n, new BasicSolverFactory());
+        IntVar[][] solution = solveMagicSquare(n, new DefaultStrategyFactory());
         displaySolution(solution);
     }
 
