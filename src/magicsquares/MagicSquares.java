@@ -10,6 +10,7 @@ import solver.constraints.IntConstraintFactory;
 import solver.exception.ContradictionException;
 import solver.search.strategy.ISF;
 import solver.search.strategy.decision.Decision;
+import solver.search.strategy.selectors.VariableSelector;
 import solver.search.strategy.selectors.VariableSelectorWithTies;
 import solver.search.strategy.selectors.values.IntDomainMax;
 import solver.search.strategy.selectors.values.IntDomainMin;
@@ -22,17 +23,22 @@ import solver.variables.VariableFactory;
 import util.tools.ArrayUtils;
 
 public class MagicSquares {
-    public static interface StrategyFactory {
+    public static abstract class StrategyFactory {
         public abstract AbstractStrategy build(IntVar[][] vars);
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName();
+        }
     }
 
-    public static class DefaultStrategyFactory implements StrategyFactory {
+    public static class DefaultStrategyFactory extends StrategyFactory {
         public AbstractStrategy build(IntVar[][] vars) {
             return null;
         }
     }
 
-    public static class BasicStrategyFactory implements StrategyFactory {
+    public static class BasicStrategyFactory extends StrategyFactory {
         public AbstractStrategy build(IntVar[][] vars) {
             return ISF.custom(new VariableSelectorWithTies<IntVar>(new Smallest()), new IntDomainMax(), ArrayUtils.flatten(vars));
         }
@@ -89,12 +95,16 @@ public class MagicSquares {
     // Tests automatiques 
     //
     // Écrit un tableau avec la taille du carré et le temps de résolution associé
-    public static void test(int n, PrintStream ps, StrategyFactory strategyFactory) {
-        for(int i = 1; i <= n; i++) {
-            double start = System.currentTimeMillis();
-            solveMagicSquare(i, strategyFactory);
-            double end = System.currentTimeMillis();
-            ps.println(i + "\t" + (end - start));
+    public static void test(int n, PrintStream ps, StrategyFactory... strategies) {
+        for (StrategyFactory strategy : strategies) {
+            ps.print(strategy.toString());
+            for (int i = 1; i <= n; i++) {
+                double start = System.currentTimeMillis();
+                solveMagicSquare(i, strategy);
+                double end = System.currentTimeMillis();
+                ps.print("\t" + (end - start));
+            }
+            ps.println();
         }
     }
     
