@@ -4,28 +4,21 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 
-import solver.ICause;
 import solver.Solver;
 import solver.constraints.IntConstraintFactory;
-import solver.exception.ContradictionException;
-import solver.explanations.Deduction;
-import solver.explanations.Explanation;
 import solver.search.strategy.ISF;
-import solver.search.strategy.decision.fast.FastDecision;
 import solver.search.strategy.selectors.VariableSelector;
 import solver.search.strategy.selectors.VariableSelectorWithTies;
 import solver.search.strategy.selectors.values.IntDomainMax;
 import solver.search.strategy.selectors.values.IntDomainMiddle;
 import solver.search.strategy.selectors.values.IntDomainMin;
 import solver.search.strategy.selectors.values.IntDomainRandom;
-import solver.search.strategy.selectors.variables.ActivityBased;
 import solver.search.strategy.selectors.variables.Largest;
 import solver.search.strategy.selectors.variables.Random;
 import solver.search.strategy.selectors.variables.Smallest;
 import solver.search.strategy.strategy.AbstractStrategy;
 import solver.variables.IntVar;
 import solver.variables.VariableFactory;
-import solver.variables.view.BoolEqView;
 import util.tools.ArrayUtils;
 
 public class MagicSquares {
@@ -160,8 +153,6 @@ public class MagicSquares {
                         return intVars[indexDiag];
                     }
                     return null;
-
-                    // return intVars[((int) (Math.random() * intVars.length))];
                 }
             }, new IntDomainMin(), ArrayUtils.flatten(vars));
         }
@@ -184,7 +175,7 @@ public class MagicSquares {
         IntVar[] diagonal2 = new IntVar[n];
 
         // Lignes et colonnes
-        for(int i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             solver.post(IntConstraintFactory.sum(vs[i], sum));
             solver.post(IntConstraintFactory.sum(ArrayUtils.getColumn(vs, i), sum));
             diagonal1[i] = vs[i][i];
@@ -204,8 +195,8 @@ public class MagicSquares {
     // Affichage d'une solution trouvée
     //
     public static void displaySolution(IntVar[][] solution) {
-        for(int i = 0; i < solution.length; i++) {
-            for(int j = 0; j < solution[i].length; j++) {
+        for (int i = 0; i < solution.length; i++) {
+            for (int j = 0; j < solution[i].length; j++) {
                 System.out.print(solution[i][j].getValue());
                 System.out.print(' ');
             }
@@ -227,31 +218,18 @@ public class MagicSquares {
 
         for (StrategyFactory strategy : strategies) {
             ps.print(strategy.toString());
-            for (int i = 1; i <= n; i += 2) {
+            for (int i = 1; i <= n; i++) {
                 long start = System.nanoTime();
                 solveMagicSquare(i, strategy);
                 long end = System.nanoTime();
-                ps.print("\n" + (end - start));
+                ps.print("\t" + (end - start));
             }
             ps.println();
         }
     }
 
-    //
-    // Main
-    //
-    public static void main(String[] args) {
-        final int n = 100;
-        /*String xp_name = "xp_1";
-        try {
-            File f = new File("C:\\Users\\Jonathan\\SkyDrive\\Université\\M2\\Résolution de problèmes combinatoires\\Projet\\" + xp_name);
-            PrintStream ps = new PrintStream(f);
-            test(n, ps);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }*/
-        test(n, System.out,
-                new SiamoiseStrategyFactory());/*,
+    public static void allTests(int n, PrintStream ps) {
+        test(n, ps,
                 new DefaultStrategyFactory(),
                 new LargestIntDomainMaxStrategyFactory(),
                 new LargestIntDomainMiddleStrategyFactory(),
@@ -265,6 +243,26 @@ public class MagicSquares {
                 new RandomIntDomainMiddleStrategyFactory(),
                 new RandomIntDomainMinStrategyFactory(),
                 new RandomIntDomainRandomStrategyFactory(),
-                new SiamoiseStrategyFactory());*/
+                new SiamoiseStrategyFactory());
+    }
+
+    //
+    // Main
+    //
+    public static void main(String[] args) {
+        int n = 10;
+        if (args.length > 1) {
+            n = Integer.parseInt(args[1]);
+        }
+
+        String xp_name = "compute.csv";
+        try {
+            File f = new File("./" + xp_name);
+            PrintStream ps = new PrintStream(f);
+            allTests(n, ps);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        // allTests(n, System.out);
     }
 }
